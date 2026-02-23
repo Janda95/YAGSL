@@ -566,6 +566,16 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
 
   /**
    * Aim lookahead time for the {@link SwerveDrive} to estimate its current position while driving.
+   * <p>Your camera takes a picture. It takes 10ms to process. It sends the data to the Rio/Control Hub (another 5ms).
+   * Your loop calculates the turret angle. You send the command. The turret motor takes time to accelerate.
+   * <p>
+   * By the time the ball actually leaves the robot, you are in a different place than when you took the picture.
+   * <p>
+   * The Fix: Project your position forward.
+   * <p>
+   * double latencySeconds = CAMERA_LATENCY + MOTOR_LAG + SHOOTING_TIME;
+   * </p><p> You will need to tune latencySeconds. It's often higher than you think (sometimes 100-200ms or
+   * more depending on the system).</p>
    *
    * @param lookaheadTime Lookahead time for the {@link SwerveDrive} to estimate its current position.
    * @return {@link SwerveInputStream} for chaining.
@@ -940,8 +950,8 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
 
   /**
    * Get the target vector with a lookahead, if defined. Useful for shooting on the move implementations.
-   * <p>NOTE: This is best when going in a straight line! Do not try to drive with a curve while doing this for the best
-   * results!</p>
+   * <p>NOTE: This is best when going in a straight line! Do not try to drive with a curve while doing this for the
+   * best results!</p>
    *
    * @param target Target pose to
    * @return {@link Translation2d} of the target vector.
@@ -952,7 +962,7 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
     var currentFieldOrientedSpeeds = swerveDrive.getFieldVelocity();
     if (aimLookaheadTime.isPresent())
     {
-      var aimLookAhead  = aimLookaheadTime.get().in(Seconds);
+      var aimLookAhead = aimLookaheadTime.get().in(Seconds);
       var poseTransform = new Transform2d(Meters.of(currentFieldOrientedSpeeds.vxMetersPerSecond * aimLookAhead),
                                           Meters.of(currentFieldOrientedSpeeds.vyMetersPerSecond * aimLookAhead),
                                           Rotation2d.kZero);
