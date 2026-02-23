@@ -116,7 +116,7 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
   /**
    * Locked heading for {@link SwerveInputMode#TRANSLATION_ONLY}
    */
-  private       Optional<Rotation2d>             lockedHeading                       = Optional.empty();
+  private Optional<Angle> lockedHeading = Optional.empty();
   /**
    * Output {@link ChassisSpeeds} based on aim while this is True.
    */
@@ -444,7 +444,7 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
    */
   public SwerveInputStream cubeTranslationControllerAxis(BooleanSupplier enabled)
   {
-    translationOnlyEnabled = Optional.of(enabled);
+    translationCube = Optional.of(enabled);
     return this;
   }
 
@@ -655,6 +655,18 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
   }
 
   /**
+   * Set the translation only heading to be the provided heading.
+   *
+   * @param heading Heading to lock the translation to.
+   * @return {@link SwerveInputStream} for chaining.
+   */
+  public SwerveInputStream translationOnlyHeading(Angle heading)
+  {
+    lockedHeading = Optional.ofNullable(heading);
+    return this;
+  }
+
+  /**
    * Enable locking of rotation and only translating, overrides everything.
    *
    * @param translationState Translation only if true.
@@ -738,7 +750,6 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
     {
       case TRANSLATION_ONLY ->
       {
-        lockedHeading = Optional.empty();
         break;
       }
       case ANGULAR_VELOCITY, HEADING, AIM ->
@@ -757,7 +768,10 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
     {
       case TRANSLATION_ONLY ->
       {
-        lockedHeading = Optional.of(swerveDrive.getOdometryHeading());
+        if (lockedHeading.isEmpty())
+        {
+          lockedHeading = Optional.of(swerveDrive.getOdometryHeading().getMeasure());
+        }
         break;
       }
       case ANGULAR_VELOCITY ->
@@ -1026,8 +1040,7 @@ public class SwerveInputStream implements Supplier<ChassisSpeeds>
     {
       case TRANSLATION_ONLY ->
       {
-        omegaRadiansPerSecond = swerveController.headingCalculate(swerveDrive.getOdometryHeading().getRadians(),
-                                                                  lockedHeading.get().getRadians());
+        omegaRadiansPerSecond = calculateAngularVelocity(lockedHeading.get()).in(RadiansPerSecond);
         speeds = new ChassisSpeeds(vxMetersPerSecond, vyMetersPerSecond, omegaRadiansPerSecond);
         break;
       }
